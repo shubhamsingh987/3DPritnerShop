@@ -43,7 +43,7 @@ helpers in `lib/constants.ts`:
 
 - **`productImage(imageId)`** → `/media/products/<id>.jpg` — the raw photo, background and
   all. Only used where the photo's own background is *wanted* as a full-bleed editorial
-  backdrop: `Hero.tsx`'s floating circular bubbles.
+  backdrop (the hero bubbles no longer use it — they use `productMedia` cutouts).
 - **`productThumb(imageId)`** → `/media/products/thumbs/<id>.png` — a background-removed
   RGBA cutout of the same photo, generated with Python/Pillow (corner-sample the backdrop
   color, alpha-mask by color distance with a feathered edge, trim to the subject's bbox).
@@ -105,10 +105,14 @@ generically.
 
 ## Homepage sections (`components/home/`)
 
-- `Hero.tsx` — floating product bubbles, full-bleed background video. Uses `productImage`
-  intentionally (circular crop, wants the real backdrop). Untouched this session.
-- `FeaturedPiece.tsx` — switched from `productImage` + `object-cover` to `productMedia` +
-  `object-contain` this session (was showing a big white/backdrop rectangle in dark mode).
+- `Hero.tsx` — full-bleed background video + `RisingBubbles.tsx`: clear "liquid glass"
+  product bubbles that pop in at the bottom, rise, and pop out at the top (CSS animation,
+  `.bubble-lane`/`.liquid-glass` in `globals.css`). Uses `productMedia` cutouts; edge
+  refraction is an SVG `backdrop-filter` that only renders in Chromium. Replaced the old
+  WebGL marble orbit (`OrbitSpheres.tsx`, `lib/marbleTexture.ts` — deleted).
+- `FeaturedPiece.tsx` — **removed**; it duplicated one product right above the full grid.
+- `Testimonials.tsx` — Material UI cards (`MuiProvider` in `app/layout.tsx`), styled via
+  `sx` with the site's CSS variables. Content is **placeholder** — replace with real reviews.
 - `Collection.tsx` — thin wrapper around `ProductCard`, untouched.
 - `FinalCta.tsx` — **fully redesigned** this session. Was a single full-bleed close-up
   product photo with generic copy ("Own one of 16."). Now: a small still-life built from

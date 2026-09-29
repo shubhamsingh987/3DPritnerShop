@@ -38,7 +38,7 @@ export function productImage(imageId: string) {
  * Not every imageId has one — see `hasThumb`/`productMedia` below, which
  * fall back to `productImage` for close-up crops whose corners run into
  * the product itself (no flat backdrop left to key out safely). The
- * homepage's full-bleed editorial shots (Hero, FeaturedPiece, FinalCta)
+ * homepage's full-bleed editorial shots (Hero, FinalCta)
  * intentionally skip this entirely and always use `productImage` — they
  * want the actual studio background, not a cutout.
  */

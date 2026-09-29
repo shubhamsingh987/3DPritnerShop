@@ -1,6 +1,6 @@
 import Hero from "@/components/home/Hero";
-import FeaturedPiece from "@/components/home/FeaturedPiece";
 import Collection from "@/components/home/Collection";
+import Testimonials from "@/components/home/Testimonials";
 import About from "@/components/home/About";
 import FinalCta from "@/components/home/FinalCta";
 
@@ -8,8 +8,8 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <FeaturedPiece />
       <Collection />
+      <Testimonials />
       <About />
       <FinalCta />
     </>

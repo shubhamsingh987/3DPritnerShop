@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/providers/ThemeProvider";
+import MuiProvider from "@/components/providers/MuiProvider";
 import SessionProvider from "@/components/providers/SessionProvider";
 import CartProvider from "@/components/providers/CartProvider";
 import AccountSetupGate from "@/components/account/AccountSetupGate";
@@ -89,6 +90,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <MuiProvider>
         <ThemeProvider>
           <SessionProvider>
             <CartProvider />
@@ -103,6 +105,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Toaster />
           </SessionProvider>
         </ThemeProvider>
+        </MuiProvider>
       </body>
     </html>
   );

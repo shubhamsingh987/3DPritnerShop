@@ -123,127 +123,241 @@ body {
   outline-offset: 2px;
 }
 
-/* Hero product-bubble orbit --------------------------------------------
-   A ring of bubbles arranged around the fixed hero content, itself now
-   vertically centered in the hero section (see the section's own `flex
-   items-center` in Hero.tsx) instead of sitting flush under the navbar —
-   that alone roughly doubles the clearance available above the text on
-   short/medium viewports. Each `.hero-orbit-item` seats itself on the
-   ring at `--angle` (0deg = 12 o'clock, clockwise) and `--orbit-radius`
-   out from center using the classic rotate+translate+counter-rotate
-   trick — no per-item top/left values, no JS trig — and that trailing
-   counter-rotate keeps it upright regardless of its own seat angle.
-
-   Continuous revolution (`.hero-orbit` spinning, `.hero-orbit-upright`
-   counter-spinning by the same amount so it never reaches the product
-   photo) is gated on WIDTH only now, not height. It used to also require
-   a height floor (~750px) so a full 360° sweep's radius could clear the
-   text block's corner distance (~213px) without ever geometrically
-   touching it — but that was stricter than the actual requirement. The
-   navbar is `fixed z-40` (Navbar.tsx), the hero text is `z-30`, the CTA
-   is `z-40`, and this orbit is `z-20`: all three already render ON TOP of
-   the orbit regardless of geometric overlap, so a bubble passing behind
-   the text or under the navbar at some rotation angle never actually
-   covers them or blocks the CTA's click target (canvas is
-   `pointer-events: none`) — it just means that sliver of the bubble is
-   itself briefly occluded, which is the acceptable trade-off for keeping
-   the orbit moving on the short/medium-height windows most real users
-   actually browse in (laptop screens after browser chrome routinely land
-   under 750px of usable height). Width still gates it, because going
-   off-width is a real problem `overflow-hidden` only half-solves (clipped
-   bubbles look broken, not just occluded): ~700px for the 4-point cross,
-   ~1024px for the fuller 6-point hex. Below phone width there simply
-   isn't room for a full sweep at all and the ring stays a fixed 2-point
-   top/bottom pair; from 640–699px width it's a static 4-point cross.
-   Radius, duration and each item's per-tier angle are the only numbers to
-   tune to reshape the composition. */
-.hero-orbit {
-  --orbit-duration: 34s;
-  /* Mobile: 2 bubbles, top+bottom only (zero horizontal offset). */
-  --orbit-radius: clamp(196px, 24vh, 226px);
-}
-
-.hero-orbit-item {
+/* Hero rising bubbles (RisingBubbles.tsx) ---------------------------------
+   Three nested layers, each with one job, so each can use a plain transform
+   animation on the compositor:
+   - .bubble-lane: a full-hero-height column; its translateY carries the
+     bubble (seated at the lane's top edge) from below the hero to above it.
+   - .bubble-sway: the side-to-side drift.
+   - .bubble-pop:  scale/opacity — pops in near the floor, pops out up top.
+   Hovering or focusing a bubble freezes all three so it can be clicked. */
+.bubble-lane {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  /* --hover-nudge is 0deg at rest and a few degrees while this item's own
-     bubble is hovered (see the :has() rule below) — a small, smooth slide
-     along the SAME fixed circular path, not a jump off of it, since it's
-     just added to the seat angle the position/upright math already uses. */
-  --angle: calc(var(--angle-base) + var(--hover-nudge, 0deg));
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(calc(var(--orbit-radius) * -1)) rotate(calc(var(--angle) * -1));
-  transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+  top: 0;
+  bottom: 0;
+  /* Keep the whole bubble (plus its sway) on-screen at narrow widths. */
+  left: clamp(calc(var(--s) / 2 + var(--sway) + 4px), var(--x), calc(100% - var(--s) / 2 - var(--sway) - 4px));
+  width: var(--s);
+  transform: translate3d(-50%, 100%, 0);
+  animation: bubble-rise var(--dur) linear var(--delay) infinite;
   will-change: transform;
 }
-
-.hero-orbit-item:has(.hero-orbit-bubble:hover),
-.hero-orbit-item:has(.hero-orbit-bubble:focus-visible) {
-  --hover-nudge: 5deg;
+.bubble-sway {
+  animation: bubble-sway var(--sway-dur) ease-in-out var(--delay) infinite alternate;
 }
-
-.hero-orbit-upright {
-  transform: rotate(0deg);
+.bubble-pop {
+  position: relative;
+  animation: bubble-pop var(--dur) linear var(--delay) infinite;
 }
-
-@media (min-width: 640px) {
-  .hero-orbit {
-    /* 640–699px width only: too narrow for the rotating tier below to
-       clear the sides safely, so this stays a static 4-point cross. */
-    --orbit-radius: clamp(206px, 22vw, 224px);
-  }
-  .hero-orbit-item {
-    --angle: calc(var(--angle-sm) + var(--hover-nudge, 0deg));
-  }
-}
-
-@media (min-width: 700px) {
-  .hero-orbit {
-    /* Tablet width and up: the 4-point cross revolves continuously — see
-       the file-level comment above for why height no longer gates this. */
-    --orbit-radius: clamp(262px, 22vw, 300px);
-    animation: hero-orbit-spin var(--orbit-duration) linear infinite;
-  }
-  .hero-orbit-upright {
-    animation: hero-orbit-counter-spin var(--orbit-duration) linear infinite;
-    will-change: transform;
-  }
-}
-
-@media (min-width: 1024px) {
-  .hero-orbit {
-    /* Full 6-point ring, continuously revolving. The vh term still lets
-       the radius shrink gracefully on short windows instead of forcing a
-       constant, so tight vertical space costs some ring size, not the
-       motion itself. */
-    --orbit-radius: clamp(262px, 20vh, 300px);
-    animation: hero-orbit-spin var(--orbit-duration) linear infinite;
-  }
-  .hero-orbit-item {
-    --angle: calc(var(--angle-lg) + var(--hover-nudge, 0deg));
-  }
-  .hero-orbit-upright {
-    animation: hero-orbit-counter-spin var(--orbit-duration) linear infinite;
-    will-change: transform;
-  }
-}
-
-.hero-orbit:has(.hero-orbit-bubble:hover),
-.hero-orbit:has(.hero-orbit-bubble:focus-visible) {
-  animation-play-state: paused;
-}
-.hero-orbit:has(.hero-orbit-bubble:hover) .hero-orbit-upright,
-.hero-orbit:has(.hero-orbit-bubble:focus-visible) .hero-orbit-upright {
+/* Freeze only the travel layers — not the burst, which must still play. */
+.bubble-lane:is(:hover, :focus-within, .is-popping),
+.bubble-lane:is(:hover, :focus-within, .is-popping) :is(.bubble-sway, .bubble-pop) {
   animation-play-state: paused;
 }
 
-@keyframes hero-orbit-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes bubble-rise {
+  from { transform: translate3d(-50%, 100%, 0); }
+  to { transform: translate3d(-50%, calc(-1 * var(--s) - 40px), 0); }
 }
-@keyframes hero-orbit-counter-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
+@keyframes bubble-sway {
+  from { transform: translateX(calc(-1 * var(--sway))) rotate(-4deg); }
+  to { transform: translateX(var(--sway)) rotate(4deg); }
+}
+@keyframes bubble-pop {
+  0% { transform: scale(0.15); opacity: 0; }
+  4% { transform: scale(0.15); opacity: 0; }
+  9% { transform: scale(1.08); opacity: 1; }
+  12% { transform: scale(0.97); }
+  15% { transform: scale(1); }
+  84% { transform: scale(1); opacity: 1; }
+  90% { transform: scale(1.14); opacity: 0.9; }
+  93% { transform: scale(1.3); opacity: 0; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* Liquid glass: fully clear — no fill, no frost. What makes it read as a
+   solid glass sphere is only light: a hairline rim, a bright top-left
+   specular, a caustic glow pooled at the bottom inner edge, a faint
+   dispersion fringe, and (Chromium) real edge refraction of whatever is
+   behind it via the per-size SVG filter in --refract. */
+.liquid-glass {
+  position: relative;
+  display: block;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 9999px;
+  cursor: pointer;
+  background:
+    radial-gradient(120% 120% at 32% 24%, rgba(255, 255, 255, 0.16), transparent 42%),
+    radial-gradient(140% 140% at 70% 82%, rgba(120, 150, 255, 0.1), transparent 55%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.55),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.22),
+    inset 10px 14px 22px -16px rgba(255, 255, 255, 0.55),
+    inset -8px -12px 20px -14px rgba(255, 255, 255, 0.35),
+    0 18px 36px -18px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.3s var(--ease-standard);
+}
+.liquid-glass:hover,
+.liquid-glass:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.75),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.3),
+    inset 10px 14px 22px -14px rgba(255, 255, 255, 0.7),
+    inset -8px -12px 20px -12px rgba(255, 255, 255, 0.45),
+    0 22px 44px -18px rgba(0, 0, 0, 0.5);
+}
+/* Faint prismatic fringe, masked to a thin band just inside the rim. */
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(
+    from 210deg,
+    rgba(255, 120, 190, 0.22),
+    rgba(120, 200, 255, 0.22),
+    rgba(150, 255, 210, 0.16),
+    rgba(255, 225, 130, 0.2),
+    rgba(255, 120, 190, 0.22)
+  );
+  -webkit-mask: radial-gradient(circle, transparent 84%, #000 93%, transparent 100%);
+  mask: radial-gradient(circle, transparent 84%, #000 93%, transparent 100%);
+  mix-blend-mode: screen;
+}
+/* Fresnel: the edge of a sphere reflects more than its face. */
+.liquid-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    transparent 64%,
+    rgba(255, 255, 255, 0.05) 78%,
+    rgba(255, 255, 255, 0.22) 94%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+}
+.liquid-glass__object {
+  position: absolute;
+  inset: 13%;
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.42)) contrast(1.06) saturate(1.08);
+  transition: transform 0.4s var(--ease-standard);
+}
+.liquid-glass:hover .liquid-glass__object,
+.liquid-glass:focus-visible .liquid-glass__object {
+  transform: scale(1.08);
+}
+/* Light focused through the sphere, pooling at the far (bottom-right) inner edge. */
+.liquid-glass__caustic {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(ellipse 52% 26% at 58% 90%, rgba(255, 255, 255, 0.38), transparent 70%);
+  mix-blend-mode: screen;
+  filter: blur(1px);
+}
+/* Thin bright crescent hugging the top inner edge, and a fainter one along
+   the bottom — the double reflection that makes a clear sphere read as round. */
+.liquid-glass__crescent {
+  position: absolute;
+  inset: 3.5%;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 5px 5px -3px rgba(255, 255, 255, 0.75),
+    inset 0 -3px 5px -2px rgba(255, 255, 255, 0.28);
+  mix-blend-mode: screen;
+}
+/* Main specular window reflection, plus a tiny hot spot. */
+.liquid-glass__specular {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 30% 21%, rgba(255, 255, 255, 0.95) 0 2.2%, transparent 4%),
+    radial-gradient(ellipse 34% 20% at 36% 19%, rgba(255, 255, 255, 0.62), transparent 72%),
+    radial-gradient(ellipse 20% 8% at 70% 84%, rgba(255, 255, 255, 0.25), transparent 70%);
+  transform: rotate(-18deg);
+  mix-blend-mode: screen;
+}
+
+/* Click burst: the glass swells and vanishes, a ring flashes outward, droplets
+   fling off the rim, and the product lingers a beat before fading. */
+.is-popping .liquid-glass {
+  animation: glass-burst 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.is-popping .liquid-glass__object {
+  animation: object-release 0.46s ease-out forwards;
+}
+.is-popping .liquid-glass > span:not(.liquid-glass__object) {
+  display: none;
+}
+.bubble-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.bubble-burst__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
+  animation: burst-ring 0.42s ease-out forwards;
+}
+.bubble-burst__drop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--ds);
+  height: var(--ds);
+  margin: calc(var(--ds) / -2);
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #fff, rgba(255, 255, 255, 0.35) 60%, transparent 70%);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+  animation: burst-drop 0.46s cubic-bezier(0.15, 0.8, 0.3, 1) forwards;
+}
+@keyframes glass-burst {
+  0% { transform: scale(1); opacity: 1; }
+  35% { transform: scale(1.14, 1.08); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes object-release {
+  0% { transform: scale(1); opacity: 1; }
+  40% { transform: scale(1.14); opacity: 1; }
+  100% { transform: scale(1.05) translateY(6px); opacity: 0; }
+}
+@keyframes burst-ring {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(1.65); opacity: 0; border-width: 0.5px; }
+}
+@keyframes burst-drop {
+  0% { transform: rotate(var(--a)) translateY(calc(var(--s) * -0.47)) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateY(calc(var(--s) * -0.47 - var(--d))) scale(0.3); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble-lane,
+  .bubble-sway,
+  .bubble-pop {
+    animation: none !important;
+  }
+  .bubble-lane {
+    transform: translate3d(-50%, var(--rest), 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
